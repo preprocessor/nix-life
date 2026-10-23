@@ -1,39 +1,37 @@
-#   step:   board -> board  (advance one generation)
-#   render: board -> string (one text frame)
-# A board is a list of rows, each row a list of 0/1.
 let
-  # cell lookup, with everything outside the grid counted as dead
+  inherit (builtins)
+    length
+    elemAt
+    head
+    genList
+    concatStringsSep
+    ;
+  # cell lookup, everything outside the grid is "dead"
   at =
-    g: r: c:
+    grid: row: col:
     let
-      rows = builtins.length g;
-      cols = builtins.length (builtins.head g);
+      rows = length grid;
+      cols = length (head grid);
     in
-    if r < 0 || r >= rows || c < 0 || c >= cols then 0 else builtins.elemAt (builtins.elemAt g r) c;
+    if row < 0 || row >= rows || col < 0 || col >= cols then 0 else elemAt (elemAt grid row) col;
 
   neighbours =
-    g: r: c:
-    at g (r - 1) (c - 1)
-    + at g (r - 1) c
-    + at g (r - 1) (c + 1)
-    + at g r (c - 1)
-    + at g r (c + 1)
-    + at g (r + 1) (c - 1)
-    + at g (r + 1) c
-    + at g (r + 1) (c + 1);
+    grid: row: col:
+    at grid (row - 1) (col - 1)
+    + at grid (row - 1) col
+    + at grid (row - 1) (col + 1)
+    + at grid row (col - 1)
+    + at grid row (col + 1)
+    + at grid (row + 1) (col - 1)
+    + at grid (row + 1) col
+    + at grid (row + 1) (col + 1);
 
-  rule = alive: n: if n == 3 || (alive == 1 && n == 2) then 1 else 0;
+  rule = alive: neighbours: if neighbours == 3 || (alive == 1 && neighbours == 2) then 1 else 0;
 in
 {
-  step =
-    g:
-    builtins.genList (
-      r: builtins.genList (c: rule (at g r c) (neighbours g r c)) (builtins.length (builtins.head g))
-    ) (builtins.length g);
+  step = g: genList (r: genList (c: rule (at g r c) (neighbours g r c)) (length (head g))) (length g);
 
   render =
     g:
-    builtins.concatStringsSep "\n" (
-      map (row: builtins.concatStringsSep "" (map (x: if x == 1 then "█" else "·") row)) g
-    );
+    concatStringsSep "\n" (map (row: concatStringsSep "" (map (x: if x == 1 then "█" else "-") row)) g);
 }

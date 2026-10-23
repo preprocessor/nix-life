@@ -1,29 +1,11 @@
 {
   pkgs ? import <nixpkgs> { },
-  delay ? "0.5",
+  delay ? "0.05",
+  init_state,
 }:
 let
-  /*nixfmt:disable*/
-  init_state = [
-    [ 0 0 0 0 0 0 0 0 0 0 0 ]
-    [ 0 0 0 0 0 0 0 0 0 0 0 ]
-    [ 0 0 0 0 1 0 1 0 0 0 0 ]
-    [ 0 0 0 1 1 1 1 1 0 0 0 ]
-    [ 0 0 0 0 1 0 1 0 0 0 0 ]
-    [ 0 0 0 1 1 1 1 1 0 0 0 ]
-    [ 0 0 0 0 1 0 1 0 0 0 0 ]
-    [ 0 0 0 0 0 0 0 0 0 0 0 ]
-    [ 0 0 0 0 0 0 0 0 0 0 0 ]
-    [ 0 0 0 0 0 0 0 0 0 0 0 ]
-    [ 0 0 0 0 0 0 0 0 0 0 0 ]
-  ];
-  /*nixfmt:enable*/
-
-  # The board travels through the shell loop as JSON.
   initJson = builtins.toJSON init_state;
 
-  # Evaluated once per frame. Reads the current board from $STATE and returns
-  # the text to display plus the next board.
   frameExpr = ''
     let
       life = import ${./life.nix};
