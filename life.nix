@@ -1,37 +1,77 @@
+{ wrap, grid }:
 let
   inherit (builtins)
-    length
-    elemAt
-    head
-    genList
     concatStringsSep
+    genList
+    elemAt
+    length
+    ceil
+    head
     ;
-  # cell lookup, everything outside the grid is "dead"
+
+  rowCount = length grid;
+  colCount = length (head grid);
+
+  # cell lookup, everything outside the grid is dead
+  lookup =
+    x: y: if y < 0 || x < 0 || y >= rowCount || x >= colCount then 0 else elemAt (elemAt grid y) x;
   at =
-    grid: row: col:
-    let
-      rows = length grid;
-      cols = length (head grid);
-    in
-    if row < 0 || row >= rows || col < 0 || col >= cols then 0 else elemAt (elemAt grid row) col;
-
+    x: y:
+    if wrap then
+      let
+        wrap =
+          val: max:
+          if val == -1 then
+            max - 1
+          else if val == max then
+            0
+          else
+            val;
+        wrapX = wrap x colCount;
+        wrapY = wrap y rowCount;
+      in
+      lookup wrapX wrapY
+    else
+      lookup x y;
+  # return number of neighbours for a given cell pos
   neighbours =
-    grid: row: col:
-    at grid (row - 1) (col - 1)
-    + at grid (row - 1) col
-    + at grid (row - 1) (col + 1)
-    + at grid row (col - 1)
-    + at grid row (col + 1)
-    + at grid (row + 1) (col - 1)
-    + at grid (row + 1) col
-    + at grid (row + 1) (col + 1);
+    x: y:
+    /*nixfmt:disable*/
+      at (x - 1) (y + 1)
+    + at  x      (y + 1)
+    + at (x + 1) (y + 1)
+    + at (x - 1)  y
+    + at (x + 1)  y
+    + at (x - 1) (y - 1)
+    + at  x      (y - 1)
+    + at (x + 1) (y - 1);
+    /*nixfmt:enable*/
 
-  rule = alive: neighbours: if neighbours == 3 || (alive == 1 && neighbours == 2) then 1 else 0;
+  # get the next state of a cell given the cell and its number of neighbours
+  rule = cell: neighbours: if neighbours == 3 || (cell == 1 && neighbours == 2) then 1 else 0;
 in
 {
-  step = g: genList (r: genList (c: rule (at g r c) (neighbours g r c)) (length (head g))) (length g);
+  # The next generation step
+  step = genList (y: genList (x: rule (at x y) (neighbours x y)) colCount) rowCount;
 
   render =
-    g:
-    concatStringsSep "\n" (map (row: concatStringsSep "" (map (x: if x == 1 then "█" else "-") row)) g);
+    let
+      renderCell =
+        x: y:
+        let
+          top = at x (2 * y);
+          bottom = at x (2 * y + 1);
+        in
+        if top == 1 && bottom == 1 then
+          "█"
+        else if top == 0 && bottom == 0 then
+          " "
+        else if top > bottom then
+          "▀"
+        else
+          "▄";
+
+      rendered = genList (y: genList (x: renderCell x y) colCount) (ceil rowCount / 2 + 1);
+    in
+    concatStringsSep "\n" (map (concatStringsSep "") rendered);
 }

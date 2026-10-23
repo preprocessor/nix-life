@@ -1,16 +1,20 @@
 {
   pkgs ? import <nixpkgs> { },
-  delay ? "0.05",
+  delay ? 0.0,
+  wrap ? false,
   init_state,
 }:
 let
   initJson = builtins.toJSON init_state;
 
-  frameExpr = ''
+  frameExpr = /* nix */ ''
     let
-      life = import ${./life.nix};
-      s = builtins.fromJSON (builtins.getEnv "STATE");
-    in { frame = life.render s; next = life.step s; }
+      grid = builtins.fromJSON (builtins.getEnv "STATE");
+      life = import ${./life.nix} {
+        inherit grid;
+        wrap = ${if wrap then "true" else "false"};
+      };
+    in { frame = life.render; next = life.step; }
   '';
 in
 pkgs.writeShellApplication {
@@ -24,10 +28,10 @@ pkgs.writeShellApplication {
     gen=0
     while true; do
       out=$(STATE="$state" nix-instantiate --eval --strict --json --expr '${frameExpr}')
-      printf '\033[2J\033[Hgen %s\n%s\n' "$gen" "$(jq -r .frame <<<"$out")"
+      printf '\033[2J\033[HGeneration: %s\n%s\n' "$gen" "$(jq -r .frame <<<"$out")"
       state=$(jq -c .next <<<"$out")
       gen=$((gen + 1))
-      sleep ${delay}
+      sleep ${toString delay}
     done
   '';
 }
