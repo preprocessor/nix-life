@@ -127,14 +127,33 @@
     in
     {
       packages = builtins.mapAttrs (system: pkgs: {
-        life = import ./run.nix {
+        default = self.packages.${system}.gosper;
+
+        gosper = import ./run.nix {
           inherit pkgs;
           init_state = gosper_gun;
           delay = 0.02;
-          wrap = false;
         };
 
-        default = self.packages.${system}.life;
+        pulsar = import ./run.nix {
+          inherit pkgs;
+          init_state = pulsar;
+          delay = 0.1;
+        };
+
+        achimsotherp16variant = import ./run.nix {
+          inherit pkgs;
+          delay = 0.1;
+          init_state = achimsotherp16variant;
+        };
+
+        zebra_wires = import ./run.nix {
+          inherit pkgs;
+          init_state = zebra_wires;
+          delay = 0.02;
+          wrap = true;
+        };
+
       }) nixpkgs.legacyPackages;
     };
 }
